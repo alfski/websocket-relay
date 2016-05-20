@@ -1,13 +1,14 @@
 #!/usr/bin/perl 
-# websocket-echo.pl
+# websocket-relay.pl
 # Alf 20110923 - websocket relayer/echo
 # - if client sends "master" it is removed the send list
 # - client is not sent it's own message
 # - if client send "resend" the last message is resent
 #
+# Alf 20160520 - added "sink". Messages will ONLY go to this client
+#
 # run with 
 # perl ~/websocket/mojo/websocket-echo.pl daemon --listen http://*:3000
-
 
 use Mojolicious::Lite;
 use Mojo::IOLoop;
@@ -17,6 +18,7 @@ use Mojo::IOLoop;
 my $clients = {};
 my $noofClients = 0;
 my $lastMessage = "";
+my $sink = "";
 
 websocket '/relay' => sub {		# ws://IP_ADDRESS:3000/relay
 
@@ -42,14 +44,22 @@ websocket '/relay' => sub {		# ws://IP_ADDRESS:3000/relay
 	my $thisClient = sprintf "%s", $self->tx; # who was the message from
 
 	if ($message eq "master") {	# remove any master from client send list
+		warn "client is declaring master: $thisClient\n";
 		delete $clients->{$thisClient};
-		warn "client is declaring master\n";
+	}
+	elsif ($message eq "sink") {
+		warn "client is declaring sink: $thisClient\n";
+		$sink = $thisClient;
 	}
 	elsif ($message eq "resend") {
 		$clients->{$thisClient}->send("$lastMessage");
-	} else {			# send message to the full client list
-        	for $id (keys %$clients) {
-			if ($id ne $thisClient) { $clients->{$id}->send("$message"); }
+	} else {
+		if ($sink ne "") {	# if sink set only send to the sink
+			$clients->{$sink}->send("$message");
+		} else {		# send message everyone but sender (relay)
+        		for $id (keys %$clients) {
+				if ($id ne $thisClient) { $clients->{$id}->send("$message"); }
+			}
 		}
 		$lastMessage = $message if $message ne "R"; # R for 'reload'
 	}
