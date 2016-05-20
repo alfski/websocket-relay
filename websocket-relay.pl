@@ -56,7 +56,7 @@ websocket '/relay' => sub {		# ws://IP_ADDRESS:3000/relay
 	} else {
 		if ($sink ne "") {	# if sink set only send to the sink
 			$clients->{$sink}->send("$message");
-		} else {		# send message everyone but sender (relay)
+		} else {		# send message to everyone but sender (relay)
         		for $id (keys %$clients) {
 				if ($id ne $thisClient) { $clients->{$id}->send("$message"); }
 			}
