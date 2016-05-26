@@ -6,6 +6,7 @@
 # - if client send "resend" the last message is resent
 #
 # Alf 20160520 - added "sink". Messages will ONLY go to this client
+# Alf 20160526 - added "heartbeat". Replies with simple string to heartbeat requests
 #
 # run with 
 # perl ~/websocket/mojo/websocket-echo.pl daemon --listen http://*:3000
@@ -19,6 +20,7 @@ my $clients = {};
 my $noofClients = 0;
 my $lastMessage = "";
 my $sink = "";
+#my $heartbeat_msg = "beeep";
 
 websocket '/relay' => sub {		# ws://IP_ADDRESS:3000/relay
 
@@ -53,6 +55,9 @@ websocket '/relay' => sub {		# ws://IP_ADDRESS:3000/relay
 	}
 	elsif ($message eq "resend") {
 		$clients->{$thisClient}->send("$lastMessage");
+        }
+	elsif ($message eq "heartbeat") {
+		$clients->{$thisClient}->send("beeeep");
 	} else {
 		if ($sink ne "") {	# if sink set only send to the sink
 			$clients->{$sink}->send("$message");
